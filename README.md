@@ -10,6 +10,9 @@ This repository documents a high-severity set of privacy violations in **iOS 18.
 
 The research was performed using official Apple tooling (Console.app) on a **stock iPhone 14 Pro Max** running **iOS 18.5**, with **no jailbreak**, **no MDM**, and **no third-party apps**.
 
+**Log Evidence:** 
+(https://ia801505.us.archive.org/16/items/bluetooth-hacks-your-life/ios18.5_silent_tracking_console_capture.mov)
+
 ---
 
 ##  Report Summary
