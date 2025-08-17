@@ -1,0 +1,198 @@
+# Bluetooth Hijacked for Silent Scanning and GPS Harvesting — iOS 18.5
+
+**Author:** Joseph Goydish II
+**Date of Discovery:** June 24, 2025
+**Test Device:** iPhone 14 Pro Max
+**iOS Version:** 18.5
+**Severity:** High
+**Tools Used:** Apple Console.app (macOS) via USB
+**Test Environment:** Stock iOS (no jailbreak, no MDM, no third-party tools)
+
+**Log Evidence:**
+(https://ia801505.us.archive.org/16/items/bluetooth-hacks-your-life/ios18.5_silent_tracking_console_capture.mov)
+---
+
+**Summary**
+
+This report documents a reproducible series of system-level privacy violations in iOS 18.5, in which native Apple system daemons:
+
+* Expose Bluetooth trust metadata
+* Initiate background BLE scans without user interaction
+* Trigger GPS-based location harvesting without consent
+* Bypass user-facing privacy control mechanisms
+
+All of these behaviors occur without any UI indicators, prompts, or active app involvement.
+
+These findings were collected using Apple’s own diagnostic tools on a clean iPhone with no modifications. All activity observed was native to iOS and requires no third-party applications or tampering.
+
+---
+
+**Vulnerability Details**
+
+---
+
+**VF-001 — Exposure of Bluetooth Trust Metadata**
+
+Component: audioaccessoryd
+
+Description:
+This daemon exposes metadata for previously trusted Bluetooth Low Energy accessories, including Identity Resolving Keys (IRKs) and pairing states — even when those devices are powered off or disconnected.
+
+Log Evidence:
+
+```
+Read IRK for device A8:BE:27:17:94:26 : result 0  
+init cloud - found 0 paired LE devices in local keychain  
+```
+
+Impact:
+
+* Leaks historical device trust relationships
+* Enables passive tracking and identity correlation
+
+---
+
+**VF-002 — Silent BLE Scanning**
+
+Component: SPCBPeripheralManager
+
+Description:
+Accessing trust metadata triggers silent Bluetooth Low Energy scanning in the background, with no foreground app activity or user-visible indicators.
+
+Log Evidence:
+
+```
+SPCBPeripheralManager: Created session for <<hash>>:com.apple.bluetoothd  
+SPCBPeripheralManager: fetch duration: 17.61 ms  
+```
+
+Impact:
+
+* Device becomes passively discoverable
+* Enables silent environmental mapping or passive surveillance
+
+---
+
+**VF-003 — Covert GPS Activation**
+
+Component: locationd
+
+Description:
+GPS-based location harvesting is activated silently — with no consent dialog, app invocation, or system UI indicator.
+
+Log Evidence:
+
+```
+"updateHarvestingAllowed", "isHarvestingEnabled":1  
+"Harvesting is forced to be allowed,0"  
+```
+
+Impact:
+
+* Location data collected without user consent
+* Violates iOS’s stated privacy protections
+
+---
+
+**VF-004 — TCC Framework Bypass**
+
+Component: tccd
+
+Description:
+By setting the `preflight=yes` flag, system processes bypass Apple’s TCC (Transparency, Consent, and Control) framework, which enforces permission checks for Bluetooth access.
+
+Log Evidence:
+
+```
+TCCAccessRequest, service=kTCCServiceBluetoothAlways, preflight=yes, client_dict=(null)  
+```
+
+Impact:
+
+* Silent privilege escalation
+* Permission enforcement bypassed at the system level
+
+---
+
+**VF-005 — Continued Trust Logic After Cryptographic Failure**
+
+Component: bluetoothd
+
+Description:
+Even when access to keychain material fails (e.g., missing or corrupted crypto keys), trust metadata continues to be processed and surfaced.
+
+Log Evidence:
+
+```
+Failed to query key chain magic key data ... result 150  
+Read IRK for device C8:7B:23:93:6F:C7 : result 150  
+```
+
+Impact:
+
+* Trust logic proceeds in degraded security state
+* Weakens platform integrity and resilience
+
+---
+
+**Behavioral Sequence**
+
+During a single session of console logging, the following occurred:
+
+1. `audioaccessoryd` accessed Bluetooth trust metadata
+2. `SPCBPeripheralManager` initiated BLE scans
+3. `locationd` activated GPS harvesting silently
+4. `tccd` bypassed the TCC framework using `preflight=yes`
+5. `bluetoothd` continued trust operations despite cryptographic failures
+
+Together, these components form a passive telemetry pipeline that violates iOS’s user-facing privacy model.
+
+---
+
+**Risk Assessment**
+
+* **Metadata Exposure:** Trust data is revealed even when no devices are connected.
+* **Silent BLE Discovery:** Background BLE scans occur with no user prompt.
+* **Covert Location Access:** GPS data is collected without indicators or consent.
+* **Consent Bypass:** TCC protections are silently bypassed.
+* **Crypto Integrity Failure:** Trust logic continues despite keychain or credential failure.
+
+---
+
+**Reproducibility**
+
+* Device: iPhone 14 Pro Max
+* OS Version: iOS 18.5
+* Tools: Apple Console.app (macOS)
+* Test Environment: Clean install with no jailbreak, MDM, or third-party apps
+* Observed Daemons:
+
+  * audioaccessoryd
+  * bluetoothd
+  * tccd
+  * locationd
+  * SPCBPeripheralManager
+
+---
+
+**Supporting Materials**
+
+* Redacted console logs
+* Annotated log excerpts by vulnerability
+* Reproduction steps and configuration notes
+
+---
+
+**Conclusion**
+
+The behaviors observed in iOS 18.5 reflect a coordinated system-level approach to collecting Bluetooth and GPS metadata without user awareness or consent. Key findings:
+
+* Trust metadata is exposed without visibility
+* BLE and GPS collection is silently triggered
+* TCC protections are bypassed at runtime
+* Cryptographic enforcement is not required to proceed
+
+This design architecture poses a **serious privacy risk**, especially in high-security or adversarial environments. It challenges Apple's public privacy guarantees and opens the door to persistent, covert tracking of users.
+
+---
+
