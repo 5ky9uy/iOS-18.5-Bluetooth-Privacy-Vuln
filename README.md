@@ -1,3 +1,5 @@
+(Original Fork Network Left)
+
 # iOS 18.5 Bluetooth Privacy Vulnerabilities
 
 > ⚠ Silent BLE Scanning, Metadata Exposure, and Covert GPS Activation on iPhone
